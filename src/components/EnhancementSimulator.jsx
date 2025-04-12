@@ -212,13 +212,20 @@ function EnhancementSimulator({ onLog, onStatUpdate }) {
   };
 
   const handleTryTen = async () => {
-    setStopEnhancement(false); // 먼저 초기화
+    // 중단 상태 초기화
+    setStopEnhancement(false);
 
-    await new Promise((r) => setTimeout(r, 10)); // 상태 반영될 시간 확보
+    // 비동기 상태 반영까지 약간 텀 줘야 안전
+    await new Promise((r) => setTimeout(r, 10));
 
     onLog?.("✨ 10연차 강화 시도 시작!");
+
     for (let i = 0; i < 10; i++) {
-      if (stopEnhancement) break;
+      if (stopEnhancement) {
+        console.log("강화 중단됨");
+        break;
+      }
+
       await new Promise((resolve) => setTimeout(resolve, 150));
       setTries((prev) => prev + 1);
       runEnhancement(tries + i + 1);
