@@ -133,11 +133,11 @@ function EnhancementSimulator({ onLog, onStatUpdate }) {
 
   useEffect(() => {
     const expected = parseFloat(getExpectedSuccessRate());
-    if (expected >= 90 && !notifiedThreshold) {
-      toast("💥 기댓값 90% 돌파 - 지금 지르면 뜬다!", { type: "info" });
+    if (expected >= 80 && !notifiedThreshold) {
+      toast("💥 기댓값 80% 돌파 - 지금 지르면 뜬다!", { type: "info" });
       setNotifiedThreshold(true);
     }
-    if (expected < 90 && notifiedThreshold) {
+    if (expected < 80 && notifiedThreshold) {
       setNotifiedThreshold(false);
     }
   }, [chance, sessionTries]);
