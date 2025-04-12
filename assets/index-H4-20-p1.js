@@ -254,4 +254,4 @@ Error generating stack: `+a.message+`
   display: flex;
   flex-direction: column;
   /* gap: 1rem; */
-`;function gg(){const[i,c]=it.useState([]),[s,r]=it.useState([]),y=g=>{c(_=>[..._,g])};return w.jsxs(w.Fragment,{children:[w.jsx(hg,{}),w.jsx(Iv,{position:"top",autoClose:2500,limit:3,theme:"dark"}),w.jsxs(mg,{children:[w.jsx(ng,{onLog:y,onStatUpdate:r}),w.jsxs(vg,{children:[w.jsx(yg,{logs:i}),w.jsx(ig,{stats:s})]})]})]})}dm.createRoot(document.getElementById("root")).render(w.jsx(it.StrictMode,{children:w.jsx(gg,{})}));
+`;function gg(){const[i,c]=it.useState([]),[s,r]=it.useState([]),y=g=>{c(_=>[..._,g])};return w.jsxs(w.Fragment,{children:[w.jsx(hg,{}),w.jsx(Iv,{position:"top-right",autoClose:2500,limit:3,pauseOnHover:!0,theme:"dark"}),w.jsxs(mg,{children:[w.jsx(ng,{onLog:y,onStatUpdate:r}),w.jsxs(vg,{children:[w.jsx(yg,{logs:i}),w.jsx(ig,{stats:s})]})]})]})}dm.createRoot(document.getElementById("root")).render(w.jsx(it.StrictMode,{children:w.jsx(gg,{})}));
