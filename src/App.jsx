@@ -54,7 +54,7 @@ function App() {
     <>
       <GlobalStyle />
       <ToastContainer
-        position="top-left"
+        position="top"
         autoClose={2500}
         limit={3}
         pauseOnHover

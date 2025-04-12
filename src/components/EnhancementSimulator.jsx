@@ -114,6 +114,7 @@ function EnhancementSimulator({ onLog, onStatUpdate }) {
   const [notifiedThreshold, setNotifiedThreshold] = useState(false);
   const stopEnhancementRef = useRef(false);
   const enhancementStats = useRef([]);
+  const [useJanggiBaek, setUseJanggiBaek] = useState(true);
 
   const getExpectedSuccessRate = () => {
     const p = chance / 100;
@@ -123,7 +124,7 @@ function EnhancementSimulator({ onLog, onStatUpdate }) {
 
   const getJangGibaekChance = () => {
     const p = chance / 100;
-    if (p === 0 || jangGibaekGauge >= 100) return 0;
+    if (!useJanggiBaek || p === 0 || jangGibaekGauge >= 100) return 0;
     const failureRate = 1 - p;
     const neededGauge = 100 - jangGibaekGauge;
     const estimatedTries = Math.ceil(neededGauge / (chance * 0.465));
@@ -165,14 +166,14 @@ function EnhancementSimulator({ onLog, onStatUpdate }) {
     });
     if (onStatUpdate) onStatUpdate([...enhancementStats.current]);
 
-    if (isSuccess || jangGibaekGauge >= 100) {
+    if (isSuccess || (useJanggiBaek && jangGibaekGauge >= 100)) {
       setSuccesses((prev) => prev + 1);
       setConsecutiveFails(0);
       setLastResult("🟢 성공! 🎉");
       if (!skipLog) {
         onLog?.(
           `[${nextTry}회차] 🟢 ${
-            jangGibaekGauge >= 100 ? "장기백 강화 " : ""
+            useJanggiBaek && jangGibaekGauge >= 100 ? "장기백 강화 " : ""
           }성공! (${baseChance}%)`
         );
         onLog?.("🪦 제물이 사라졌습니다. 다시 바쳐주세요.");
@@ -188,18 +189,20 @@ function EnhancementSimulator({ onLog, onStatUpdate }) {
     setLastResult("🔴 실패… 💥");
     if (!skipLog) onLog?.(`[${nextTry}회차] 🔴 실패 (확률: ${baseChance}%)`);
 
-    const addedGauge = baseChance * 0.465;
-    setJangGibaekGauge((prev) => {
-      const newGauge = Math.min(100, prev + addedGauge);
-      if (newGauge >= 100 && !skipLog) {
-        onLog?.("💀 장기백 100% 도달! 반드시 다음 강화에 성공합니다.");
-      }
-      return newGauge;
-    });
+    if (useJanggiBaek) {
+      const addedGauge = baseChance * 0.465;
+      setJangGibaekGauge((prev) => {
+        const newGauge = Math.min(100, prev + addedGauge);
+        if (newGauge >= 100 && !skipLog) {
+          onLog?.("💀 장기백 100% 도달! 반드시 다음 강화에 성공합니다.");
+        }
+        return newGauge;
+      });
 
-    if (baseChance >= 70 && !skipLog) {
-      setJangGibaekCount((prev) => prev + 1);
-      onLog?.("⚠️ 장기백 발생! 기대 확률이 높았지만 실패했습니다.");
+      if (baseChance >= 70 && !skipLog) {
+        setJangGibaekCount((prev) => prev + 1);
+        onLog?.("⚠️ 장기백 발생! 기대 확률이 높았지만 실패했습니다.");
+      }
     }
   };
 
@@ -252,19 +255,33 @@ function EnhancementSimulator({ onLog, onStatUpdate }) {
         <BarContainer>
           <FillBar percent={expected} />
         </BarContainer>
-        <GaugeLabel style={{ marginTop: "0.5rem" }}>
-          장기백 게이지: <strong>{jangGibaekGauge.toFixed(2)}%</strong>
-        </GaugeLabel>
-        <BarContainer>
-          <FillBar percent={jangGibaekGauge} />
-        </BarContainer>
-        <GaugeLabel style={{ marginTop: "0.5rem" }}>
-          장기백을 볼 확률: <strong>{jangGibaekChance}%</strong>
-        </GaugeLabel>
-        <BarContainer>
-          <FillBar percent={jangGibaekChance} inverse />
-        </BarContainer>
+        {useJanggiBaek && (
+          <>
+            <GaugeLabel style={{ marginTop: "0.5rem" }}>
+              장기백 게이지: <strong>{jangGibaekGauge.toFixed(2)}%</strong>
+            </GaugeLabel>
+            <BarContainer>
+              <FillBar percent={jangGibaekGauge} />
+            </BarContainer>
+            <GaugeLabel style={{ marginTop: "0.5rem" }}>
+              장기백을 볼 확률: <strong>{jangGibaekChance}%</strong>
+            </GaugeLabel>
+            <BarContainer>
+              <FillBar percent={jangGibaekChance} inverse />
+            </BarContainer>
+          </>
+        )}
       </GaugeWrapper>
+      <div style={{ marginBottom: "1rem", textAlign: "center" }}>
+        <label>
+          <input
+            type="checkbox"
+            checked={useJanggiBaek}
+            onChange={(e) => setUseJanggiBaek(e.target.checked)}
+          />{" "}
+          장기백
+        </label>
+      </div>
       <ButtonGroup>
         <Button onClick={handleTry}>강화 시도</Button>
         <Button onClick={handleTryTen}>10연차 시도</Button>
