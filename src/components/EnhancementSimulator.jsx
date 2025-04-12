@@ -6,6 +6,7 @@ import { toast } from "react-toastify";
 import ExpectationAnalysis from "./ExpectationAnalysis";
 
 const Wrapper = styled.div`
+  flex:1;
   width: 100%;
   max-width: 420px;
   background-color: #2b2d31;
