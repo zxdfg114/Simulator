@@ -251,6 +251,7 @@ function EnhancementSimulator({ onLog, onStatUpdate }) {
       <GaugeWrapper>
         <GaugeLabel>
           현재 제물 기준 기댓값: <strong>{expected}%</strong>
+          {expected > 80 && <strong> 🟢 지금 강화 추천 </strong>}
         </GaugeLabel>
         <BarContainer>
           <FillBar percent={expected} />
