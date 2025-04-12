@@ -1,5 +1,6 @@
 import "./App.css";
 import EnhancementSimulator from "./components/EnhancementSimulator";
+import ExpectationAnalysis from "./components/ExpectationAnalysis";
 import LogViewer from "./components/logViewer";
 import React, { useState } from "react";
 import GlobalStyle from "./styles/GlobalStyles";
@@ -9,43 +10,40 @@ import "react-toastify/dist/ReactToastify.css";
 
 const Layout = styled.div`
   width: 100%;
-  max-width: 1080px;
+  max-width: 1400px;
   margin: 0 auto;
   display: flex;
-  justify-content: center;
-  align-items: stretch;
+  flex-direction: row;
+  align-items: flex-start;
   padding: 2rem;
   gap: 2rem;
-  min-height: 500px;
 
   @media (max-width: 768px) {
-    flex-direction: column;
-    align-items: center;
     padding: 1rem;
-    gap: 1rem;
   }
 `;
 
-const Panel = styled.div`
-  width: 360px;
-  min-height: 460px;
-  background-color: #1e1e1e;
-  border-radius: 16px;
-  padding: 1.5rem;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-  overflow-y: auto;
-  transition: all 0.3s ease;
+const ContentRow = styled.div`
+  display: grid;
+  width: 100%;
+  grid-template-columns: 1fr 420px;
+  gap: 2rem;
+  align-items: flex-start;
 
-  @media (max-width: 768px) {
-    width: 100%;
-    max-width: 100%;
-    min-height: auto;
-    padding: 1rem;
+  @media (max-width: 1080px) {
+    grid-template-columns: 1fr;
   }
+`;
+
+const SidePanel = styled.div`
+  display: flex;
+  flex-direction: column;
+  /* gap: 1rem; */
 `;
 
 function App() {
   const [logs, setLogs] = useState([]);
+  const [stats, setStats] = useState([]);
 
   const handleNewLog = (message) => {
     setLogs((prevLogs) => [...prevLogs, message]);
@@ -62,8 +60,11 @@ function App() {
         theme="dark"
       />
       <Layout>
-        <EnhancementSimulator onLog={handleNewLog} />
-        <LogViewer logs={logs} />
+        <EnhancementSimulator onLog={handleNewLog} onStatUpdate={setStats} />
+        <SidePanel>
+          <LogViewer logs={logs} />
+          <ExpectationAnalysis stats={stats} />
+        </SidePanel>
       </Layout>
     </>
   );

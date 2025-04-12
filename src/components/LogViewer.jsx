@@ -4,7 +4,7 @@ import styled, { keyframes } from "styled-components";
 
 const LogWrapper = styled.div`
   flex: 1;
-  width: 100%;
+  /* width: 400px; */
   min-width: 400px;
   background: #2b2d31;
   border-radius: 16px;
@@ -13,8 +13,8 @@ const LogWrapper = styled.div`
   border: 1px solid #313338;
   color: #e3e5e8;
   overflow-y: auto;
-  max-height: 400px;
-  min-height: 400px;
+  max-height: 250px;
+  /* min-height: 400px; */
 `;
 
 const fadeInUp = keyframes`

@@ -1,8 +1,9 @@
 // EnhancementSimulator.jsx (장기백 확률 누적 로직 + 장기백 볼 확률 표시)
-import React, { useState, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import styled from "styled-components";
 import ChanceInput from "./ChanceInput";
 import { toast } from "react-toastify";
+import ExpectationAnalysis from "./ExpectationAnalysis";
 
 const Wrapper = styled.div`
   width: 100%;
@@ -65,13 +66,11 @@ const Result = styled.div`
   }
 `;
 
-const ExpectationWrapper = styled.div`
+const GaugeWrapper = styled.div`
   margin-top: 1rem;
-  margin-bottom: 1rem;
-  text-align: center;
 `;
 
-const ExpectationText = styled.p`
+const GaugeLabel = styled.div`
   font-size: 0.95rem;
   margin-bottom: 0.4rem;
 `;
@@ -86,23 +85,24 @@ const BarContainer = styled.div`
 
 const FillBar = styled.div`
   height: 100%;
-  background-color: ${({ $percent, $inverse }) => {
-    if ($inverse) {
-      if ($percent <= 20) return "#4ade80"; // 낮을수록 좋음 (초록)
-      if ($percent <= 50) return "#facc15";
-      if ($percent <= 80) return "#f97316";
+  background-color: ${({ percent, inverse }) => {
+    if (inverse) {
+      if (percent <= 20) return "#4ade80";
+      if (percent <= 50) return "#facc15";
+      if (percent <= 80) return "#f97316";
       return "#ef4444";
     } else {
-      if ($percent >= 80) return "#4ade80";
-      if ($percent >= 50) return "#facc15";
-      if ($percent >= 20) return "#f97316";
+      if (percent >= 80) return "#4ade80";
+      if (percent >= 50) return "#facc15";
+      if (percent >= 20) return "#f97316";
       return "#ef4444";
     }
   }};
-  width: ${({ $percent }) => $percent}%;
+  width: ${({ percent }) => percent}%;
   transition: width 0.3s ease;
 `;
-function EnhancementSimulator({ onLog }) {
+
+function EnhancementSimulator({ onLog, onStatUpdate }) {
   const [chance, setChance] = useState(2);
   const [tries, setTries] = useState(0);
   const [successes, setSuccesses] = useState(0);
@@ -112,6 +112,8 @@ function EnhancementSimulator({ onLog }) {
   const [sessionTries, setSessionTries] = useState(0);
   const [jangGibaekGauge, setJangGibaekGauge] = useState(0);
   const [notifiedThreshold, setNotifiedThreshold] = useState(false);
+  const [stopEnhancement, setStopEnhancement] = useState(false);
+  const enhancementStats = useRef([]);
 
   const getExpectedSuccessRate = () => {
     const p = chance / 100;
@@ -129,6 +131,17 @@ function EnhancementSimulator({ onLog }) {
     return (prob * 100).toFixed(2);
   };
 
+  useEffect(() => {
+    const expected = parseFloat(getExpectedSuccessRate());
+    if (expected >= 90 && !notifiedThreshold) {
+      toast("💥 기댓값 90% 돌파 - 지금 지르면 뜬다!", { type: "info" });
+      setNotifiedThreshold(true);
+    }
+    if (expected < 90 && notifiedThreshold) {
+      setNotifiedThreshold(false);
+    }
+  }, [chance, sessionTries]);
+
   const resetJangGibaek = () => {
     setSessionTries(0);
     setJangGibaekGauge(0);
@@ -140,78 +153,76 @@ function EnhancementSimulator({ onLog }) {
   };
 
   const runEnhancement = (overrideTryNumber = null, skipLog = false) => {
+    const expectedValue = parseFloat(getExpectedSuccessRate());
     const baseChance = chance;
     const rand = Math.random() * 100;
     const isSuccess = rand < baseChance;
     const nextTry = overrideTryNumber !== null ? overrideTryNumber : tries + 1;
 
-    if (jangGibaekGauge >= 100) {
+    enhancementStats.current.push({
+      expected: expectedValue,
+      success: isSuccess,
+    });
+    if (onStatUpdate) onStatUpdate([...enhancementStats.current]);
+
+    if (isSuccess || jangGibaekGauge >= 100) {
       setSuccesses((prev) => prev + 1);
       setConsecutiveFails(0);
       setLastResult("🟢 성공! 🎉");
-      if (!skipLog)
-        onLog?.(`[${nextTry}회차] 🟢 장기백 강화 성공! 모든 수치 초기화.`);
-      if (!skipLog) onLog?.("🪦 제물이 사라졌습니다. 다시 바쳐주세요.");
+      if (!skipLog) {
+        onLog?.(
+          `[${nextTry}회차] 🟢 ${
+            jangGibaekGauge >= 100 ? "장기백 강화 " : ""
+          }성공! (${baseChance}%)`
+        );
+        onLog?.("🪦 제물이 사라졌습니다. 다시 바쳐주세요.");
+        toast.success("🟢 강화 성공! 축하합니다!");
+        onLog?.("⛔ 강화 중단: 성공으로 인해 중단되었습니다.");
+      }
       resetJangGibaek();
+      setStopEnhancement(true);
       return;
     }
 
     setSessionTries((prev) => prev + 1);
+    setConsecutiveFails((prev) => prev + 1);
+    setLastResult("🔴 실패… 💥");
+    if (!skipLog) onLog?.(`[${nextTry}회차] 🔴 실패 (확률: ${baseChance}%)`);
 
-    if (isSuccess) {
-      setSuccesses((prev) => prev + 1);
-      setConsecutiveFails(0);
-      setLastResult("🟢 성공! 🎉");
-      if (!skipLog) onLog?.(`[${nextTry}회차] 🟢 성공! (${baseChance}%)`);
-      toast.success(`[${nextTry}회차] 🟢 성공! (${baseChance}%)`);
-      if (!skipLog) onLog?.("🪦 제물이 사라졌습니다. 다시 바쳐주세요.");
-      resetJangGibaek();
-    } else {
-      setConsecutiveFails((prev) => prev + 1);
-      setLastResult("🔴 실패… 💥");
-      if (!skipLog) onLog?.(`[${nextTry}회차] 🔴 실패 (확률: ${baseChance}%)`);
-
-      const addedGauge = baseChance * 0.465;
-      setJangGibaekGauge((prev) => {
-        const newGauge = Math.min(100, prev + addedGauge);
-        if (newGauge >= 100 && !skipLog) {
-          onLog?.("💀 장기백 100% 도달! 반드시 다음 강화에 성공합니다.");
-        }
-        return newGauge;
-      });
-
-      if (baseChance >= 70 && !skipLog) {
-        setJangGibaekCount((prev) => prev + 1);
-        onLog?.("⚠️ 장기백 발생! 기대 확률이 높았지만 실패했습니다.");
+    const addedGauge = baseChance * 0.465;
+    setJangGibaekGauge((prev) => {
+      const newGauge = Math.min(100, prev + addedGauge);
+      if (newGauge >= 100 && !skipLog) {
+        onLog?.("💀 장기백 100% 도달! 반드시 다음 강화에 성공합니다.");
       }
+      return newGauge;
+    });
+
+    if (baseChance >= 70 && !skipLog) {
+      setJangGibaekCount((prev) => prev + 1);
+      onLog?.("⚠️ 장기백 발생! 기대 확률이 높았지만 실패했습니다.");
     }
   };
 
-  useEffect(() => {
-    const expected = parseFloat(getExpectedSuccessRate());
-    if (expected >= 80 && !notifiedThreshold) {
-      toast("💥 기댓값 80% 돌파 - 지금 지르면 뜬다", { type: "info" });
-      setNotifiedThreshold(true);
-    }
-    if (expected < 80 && notifiedThreshold) {
-      setNotifiedThreshold(false); // 다시 떨어지면 리셋해서 다음에 또 보여줌
-    }
-  }, [chance, sessionTries]);
-
   const handleTry = () => {
+    setStopEnhancement(false);
     setTries((prev) => prev + 1);
     runEnhancement();
   };
 
   const handleTryTen = async () => {
+    setStopEnhancement(false); // 먼저 초기화
+
+    await new Promise((r) => setTimeout(r, 10)); // 상태 반영될 시간 확보
+
     onLog?.("✨ 10연차 강화 시도 시작!");
     for (let i = 0; i < 10; i++) {
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      if (stopEnhancement) break;
+      await new Promise((resolve) => setTimeout(resolve, 150));
       setTries((prev) => prev + 1);
       runEnhancement(tries + i + 1);
     }
   };
-
   const handleReset = () => {
     setTries(0);
     setSuccesses(0);
@@ -219,7 +230,10 @@ function EnhancementSimulator({ onLog }) {
     setLastResult(null);
     setJangGibaekCount(0);
     resetJangGibaek();
+    setStopEnhancement(false);
+    enhancementStats.current = [];
     onLog?.("🔥 전체 초기화되었습니다.");
+    if (onStatUpdate) onStatUpdate([]);
   };
 
   const expected = parseFloat(getExpectedSuccessRate());
@@ -227,32 +241,32 @@ function EnhancementSimulator({ onLog }) {
 
   return (
     <Wrapper>
-      <Title>강화 제물 시뮬레이터</Title>
+      <Title>🔥 강화 제물 시뮬레이터</Title>
       <ChanceInput
         chance={chance}
         onChange={handleChanceChange}
         tries={sessionTries}
       />
-      <ExpectationWrapper>
-        <ExpectationText>
+      <GaugeWrapper>
+        <GaugeLabel>
           현재 제물 기준 기댓값: <strong>{expected}%</strong>
-        </ExpectationText>
+        </GaugeLabel>
         <BarContainer>
-          <FillBar $percent={expected} />
+          <FillBar percent={expected} />
         </BarContainer>
-        <ExpectationText style={{ marginTop: "0.5rem" }}>
+        <GaugeLabel style={{ marginTop: "0.5rem" }}>
           장기백 게이지: <strong>{jangGibaekGauge.toFixed(2)}%</strong>
-        </ExpectationText>
+        </GaugeLabel>
         <BarContainer>
-          <FillBar $percent={jangGibaekGauge} />
+          <FillBar percent={jangGibaekGauge} />
         </BarContainer>
-        <ExpectationText style={{ marginTop: "0.5rem" }}>
+        <GaugeLabel style={{ marginTop: "0.5rem" }}>
           장기백을 볼 확률: <strong>{jangGibaekChance}%</strong>
-        </ExpectationText>
+        </GaugeLabel>
         <BarContainer>
-          <FillBar $percent={jangGibaekChance} $inverse />
+          <FillBar percent={jangGibaekChance} inverse />
         </BarContainer>
-      </ExpectationWrapper>
+      </GaugeWrapper>
       <ButtonGroup>
         <Button onClick={handleTry}>강화 시도</Button>
         <Button onClick={handleTryTen}>10연차 시도</Button>
@@ -268,6 +282,9 @@ function EnhancementSimulator({ onLog }) {
         <strong>현재 연속 실패:</strong> {consecutiveFails}회 <br />
         <strong>장기백 발생:</strong> {jangGibaekCount}회
       </Result>
+      {/* <div style={{ marginTop: "2rem" }}>
+        <ExpectationAnalysis stats={enhancementStats.current} />
+      </div> */}
     </Wrapper>
   );
 }
