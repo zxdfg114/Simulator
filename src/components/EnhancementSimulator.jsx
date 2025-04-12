@@ -3,10 +3,9 @@ import React, { useState, useRef, useEffect } from "react";
 import styled from "styled-components";
 import ChanceInput from "./ChanceInput";
 import { toast } from "react-toastify";
-import ExpectationAnalysis from "./ExpectationAnalysis";
 
 const Wrapper = styled.div`
-  flex:1;
+  flex: 1;
   width: 100%;
   max-width: 420px;
   background-color: #2b2d31;
@@ -113,7 +112,7 @@ function EnhancementSimulator({ onLog, onStatUpdate }) {
   const [sessionTries, setSessionTries] = useState(0);
   const [jangGibaekGauge, setJangGibaekGauge] = useState(0);
   const [notifiedThreshold, setNotifiedThreshold] = useState(false);
-  const [stopEnhancement, setStopEnhancement] = useState(false);
+  const stopEnhancementRef = useRef(false);
   const enhancementStats = useRef([]);
 
   const getExpectedSuccessRate = () => {
@@ -178,10 +177,9 @@ function EnhancementSimulator({ onLog, onStatUpdate }) {
         );
         onLog?.("🪦 제물이 사라졌습니다. 다시 바쳐주세요.");
         toast.success("🟢 강화 성공! 축하합니다!");
-        onLog?.("⛔ 강화 중단: 성공으로 인해 중단되었습니다.");
       }
       resetJangGibaek();
-      setStopEnhancement(true);
+      stopEnhancementRef.current = true;
       return;
     }
 
@@ -206,31 +204,23 @@ function EnhancementSimulator({ onLog, onStatUpdate }) {
   };
 
   const handleTry = () => {
-    setStopEnhancement(false);
+    stopEnhancementRef.current = false;
     setTries((prev) => prev + 1);
     runEnhancement();
   };
 
   const handleTryTen = async () => {
-    // 중단 상태 초기화
-    setStopEnhancement(false);
-
-    // 비동기 상태 반영까지 약간 텀 줘야 안전
-    await new Promise((r) => setTimeout(r, 10));
-
+    stopEnhancementRef.current = false;
     onLog?.("✨ 10연차 강화 시도 시작!");
 
     for (let i = 0; i < 10; i++) {
-      if (stopEnhancement) {
-        console.log("강화 중단됨");
-        break;
-      }
-
+      if (stopEnhancementRef.current) break;
       await new Promise((resolve) => setTimeout(resolve, 150));
       setTries((prev) => prev + 1);
       runEnhancement(tries + i + 1);
     }
   };
+
   const handleReset = () => {
     setTries(0);
     setSuccesses(0);
@@ -238,7 +228,7 @@ function EnhancementSimulator({ onLog, onStatUpdate }) {
     setLastResult(null);
     setJangGibaekCount(0);
     resetJangGibaek();
-    setStopEnhancement(false);
+    stopEnhancementRef.current = false;
     enhancementStats.current = [];
     onLog?.("🔥 전체 초기화되었습니다.");
     if (onStatUpdate) onStatUpdate([]);
@@ -290,9 +280,6 @@ function EnhancementSimulator({ onLog, onStatUpdate }) {
         <strong>현재 연속 실패:</strong> {consecutiveFails}회 <br />
         <strong>장기백 발생:</strong> {jangGibaekCount}회
       </Result>
-      {/* <div style={{ marginTop: "2rem" }}>
-        <ExpectationAnalysis stats={enhancementStats.current} />
-      </div> */}
     </Wrapper>
   );
 }
