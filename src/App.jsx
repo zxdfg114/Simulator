@@ -57,7 +57,7 @@ function App() {
         position="top"
         autoClose={2500}
         limit={3}
-        pauseOnHover
+        // pauseOnHover
         theme="dark"
       />
       <Layout>
